@@ -43,13 +43,14 @@ import "./App.css";
 const CONTACT_EMAIL = "vrajkankrecha1@gmail.com";
 const CONTACT_PHONE = "7990766746";
 const INSTAGRAM_URL = "https://www.instagram.com/vkfilms.co/";
+const publicAsset = (path) => `${import.meta.env.BASE_URL}${path}`;
 
 // Founder section
 const founder = {
   name: "Vraj Kankrecha",
   role: "Founder, VK Films.co",
   age: 21,
-  image: "/images/vraj.jpg", // file inside public/images/
+  image: publicAsset("images/vraj.jpg"), // file inside public/images/
   foundedYear: "2025",
   experience: "1+",
 };
@@ -65,12 +66,12 @@ const navItems = [
 
 // Film strip frames (photos inside public/images/ — replace with your own)
 const filmFrames = [
-  { image: "/images/strip-1.png", alt: "Black and white portrait" },
-  { image: "/images/strip-2.png", alt: "Colour portrait" },
-  { image: "/images/strip-3.png", alt: "Studio portrait" },
-  { image: "/images/strip-4.png", alt: "Warm toned portrait" },
-  { image: "/images/strip-5.png", alt: "Cool toned portrait" },
-  { image: "/images/strip-6.png", alt: "Black and white frame" },
+  { image: publicAsset("images/strip-1.png"), alt: "Black and white portrait" },
+  { image: publicAsset("images/strip-2.png"), alt: "Colour portrait" },
+  { image: publicAsset("images/strip-3.png"), alt: "Studio portrait" },
+  { image: publicAsset("images/strip-4.png"), alt: "Warm toned portrait" },
+  { image: publicAsset("images/strip-5.png"), alt: "Cool toned portrait" },
+  { image: publicAsset("images/strip-6.png"), alt: "Black and white frame" },
 ];
 const FILM_NAME = "VKFILMS 400"; // text printed on the film edge
 
@@ -81,35 +82,35 @@ const portfolioCategories = [
     number: "01",
     title: "PRE-WEDDING",
     description: "Beautiful love stories captured through cinematic photography and films.",
-    cover: "/images/strip-1.png",
+    cover: publicAsset("images/strip-1.png"),
   },
   {
     id: "wedding",
     number: "02",
     title: "WEDDING",
     description: "Wedding celebrations, candid moments, emotional portraits and cinematic wedding films.",
-    cover: "/images/strip-2.png",
+    cover: publicAsset("images/strip-2.png"),
   },
   {
     id: "model",
     number: "03",
     title: "MODEL PHOTOGRAPHY",
     description: "Fashion photography, model portfolios, editorial shoots and creative portraits.",
-    cover: "/images/portrait.jpg",
+    cover: publicAsset("images/portrait.jpg"),
   },
   {
     id: "birthday",
     number: "04",
     title: "BIRTHDAY",
     description: "Birthday celebrations, special moments, portraits and memorable event photography.",
-    cover: "/images/strip-4.png",
+    cover: publicAsset("images/strip-4.png"),
   },
   {
     id: "events",
     number: "05",
     title: "EVENTS",
     description: "Corporate events, cultural celebrations, private functions and special occasions.",
-    cover: "/images/film.jpg",
+    cover: publicAsset("images/film.jpg"),
   },
 ].map((category) => {
   const media = portfolioMedia[category.id] ?? { images: [], videos: [] };

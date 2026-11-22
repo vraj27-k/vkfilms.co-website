@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const projectRoot = dirname(fileURLToPath(import.meta.url));
 const publicRoot = join(projectRoot, "public");
+const siteBase = process.env.GITHUB_ACTIONS === "true" ? "/vkfilms.co-website/" : "/";
 const portfolioDirectories = [
   {
     key: "images",
@@ -36,7 +37,7 @@ function listPortfolioFiles(directory, category, extensions) {
     .filter((entry) => entry.isFile() && extensions.has(entry.name.slice(entry.name.lastIndexOf(".")).toLowerCase()))
     .map((entry) => entry.name)
     .sort((left, right) => left.localeCompare(right))
-    .map((fileName) => `/${directory.slice(publicRoot.length + 1).split(sep).join("/")}/${category}/${encodeURIComponent(fileName)}`);
+    .map((fileName) => `${siteBase}${directory.slice(publicRoot.length + 1).split(sep).join("/")}/${category}/${encodeURIComponent(fileName)}`);
 }
 
 function getPortfolioMedia() {
@@ -86,5 +87,6 @@ function portfolioMediaPlugin() {
 }
 
 export default defineConfig({
+  base: siteBase,
   plugins: [react(), portfolioMediaPlugin()],
 });
