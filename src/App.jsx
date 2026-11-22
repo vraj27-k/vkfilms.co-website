@@ -44,6 +44,32 @@ const CONTACT_EMAIL = "vrajkankrecha1@gmail.com";
 const CONTACT_PHONE = "7990766746";
 const INSTAGRAM_URL = "https://www.instagram.com/vkfilms.co/";
 const publicAsset = (path) => `${import.meta.env.BASE_URL}${path}`;
+const preloadedImageUrls = new Set();
+
+function preloadImage(src) {
+  if (preloadedImageUrls.has(src)) return;
+
+  const image = new Image();
+  image.decoding = "async";
+  image.fetchPriority = "low";
+  image.onerror = () => preloadedImageUrls.delete(src);
+  preloadedImageUrls.add(src);
+  image.src = src;
+}
+
+function LoadingImage({ src, alt, className = "", ...props }) {
+  const [loadedSrc, setLoadedSrc] = useState(null);
+
+  return (
+    <img
+      {...props}
+      src={src}
+      alt={alt}
+      className={`${className} image-loading${loadedSrc === src ? " image-loaded" : ""}`}
+      onLoad={() => setLoadedSrc(src)}
+    />
+  );
+}
 
 // Founder section
 const founder = {
@@ -116,9 +142,9 @@ const portfolioCategories = [
   const media = portfolioMedia[category.id] ?? { images: [], videos: [] };
   return {
     ...category,
-    cover: media.images[0] ?? category.cover,
-    galleryImages: media.images.map((src, index) => ({
-      src,
+    cover: media.images[0]?.thumbnail ?? category.cover,
+    galleryImages: media.images.map((image, index) => ({
+      ...image,
       alt: `${category.title} photo ${index + 1}`,
     })),
     galleryVideos: media.videos.map((src, index) => ({
@@ -330,7 +356,7 @@ function About() {
     <section className="about section-padding" id="about">
       <div className="founder">
         <motion.div className="founder-photo" {...reveal}>
-          <img src={founder.image} alt={`${founder.name}, founder of VK Films.co`} loading="lazy" />
+          <LoadingImage src={founder.image} alt={`${founder.name}, founder of VK Films.co`} loading="lazy" decoding="async" />
         </motion.div>
 
         <motion.div className="founder-info" {...reveal} transition={{ duration: 0.7, delay: 0.15 }}>
@@ -393,7 +419,7 @@ function FilmCell({ frame, index, hidden }) {
 
       {/* the photo */}
       <div className="film-photo">
-        <img src={frame.image} alt={hidden ? "" : frame.alt} loading="lazy" />
+        <LoadingImage src={frame.image} alt={hidden ? "" : frame.alt} loading="lazy" decoding="async" />
       </div>
 
       {/* bottom edge: frame number + sprocket holes */}
@@ -476,7 +502,7 @@ function Work() {
           >
             <Link to={`/portfolio/${category.id}`} className="portfolio-card-link" aria-label={`View ${category.title} gallery`}>
               <div className="project-image portfolio-cover">
-                <img src={category.cover} alt={`${category.title} portfolio cover`} loading="lazy" />
+                <LoadingImage src={category.cover} alt={`${category.title} portfolio cover`} loading="lazy" decoding="async" />
                 <span className="project-number">{category.number}</span>
                 <span className="project-arrow">
                   <ArrowUpRight size={18} />
@@ -613,7 +639,7 @@ function Footer() {
    Move a line up/down to change the order of sections.
    ===================================================================== */
 
-function Lightbox({ item, onClose, onPrevious, onNext }) {
+function Lightbox({ item, images, onClose, onPrevious, onNext }) {
   useEffect(() => {
     if (!item) return;
 
@@ -630,6 +656,15 @@ function Lightbox({ item, onClose, onPrevious, onNext }) {
       window.removeEventListener("keydown", handleKey);
     };
   }, [item, onClose, onPrevious, onNext]);
+
+  useEffect(() => {
+    if (item?.type !== "image" || images.length < 2) return;
+
+    const previousIndex = (item.index - 1 + images.length) % images.length;
+    const nextIndex = (item.index + 1) % images.length;
+    preloadImage(images[previousIndex].src);
+    preloadImage(images[nextIndex].src);
+  }, [item, images]);
 
   if (!item) return null;
 
@@ -654,7 +689,16 @@ function Lightbox({ item, onClose, onPrevious, onNext }) {
 
       {item.type === "image" ? (
         <>
-          <img className="lightbox-image" src={item.src} alt={item.alt} />
+          <LoadingImage
+            key={item.src}
+            className="lightbox-image"
+            src={item.src}
+            alt={item.alt}
+            style={{ backgroundImage: `url("${item.thumbnail}")` }}
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
+          />
           <button className="lightbox-arrow lightbox-prev" type="button" onClick={onPrevious} aria-label="Previous image">
             <ChevronLeft size={28} />
           </button>
@@ -683,13 +727,15 @@ function CategoryGallery() {
   const showPreviousImage = () => {
     if (!activeItem || activeItem.type !== "image") return;
     const nextIndex = (activeItem.index - 1 + category.galleryImages.length) % category.galleryImages.length;
-    setActiveItem({ type: "image", index: nextIndex, src: category.galleryImages[nextIndex].src, alt: category.galleryImages[nextIndex].alt });
+    const image = category.galleryImages[nextIndex];
+    setActiveItem({ type: "image", index: nextIndex, src: image.src, thumbnail: image.thumbnail, alt: image.alt });
   };
 
   const showNextImage = () => {
     if (!activeItem || activeItem.type !== "image") return;
     const nextIndex = (activeItem.index + 1) % category.galleryImages.length;
-    setActiveItem({ type: "image", index: nextIndex, src: category.galleryImages[nextIndex].src, alt: category.galleryImages[nextIndex].alt });
+    const image = category.galleryImages[nextIndex];
+    setActiveItem({ type: "image", index: nextIndex, src: image.src, thumbnail: image.thumbnail, alt: image.alt });
   };
 
   const hasMedia = category.galleryImages.length > 0 || category.galleryVideos.length > 0;
@@ -717,13 +763,13 @@ function CategoryGallery() {
                 initial={index < 3 ? false : { opacity: 0, y: 24 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.55, delay: index < 3 ? 0 : (index - 2) * 0.05 }}
-                onClick={() => setActiveItem({ type: "image", index, src: image.src, alt: image.alt })}
+                onClick={() => setActiveItem({ type: "image", index, src: image.src, thumbnail: image.thumbnail, alt: image.alt })}
                 aria-label={`Open ${image.alt}`}
               >
-                <img
-                  src={image.src}
+                <LoadingImage
+                  src={image.thumbnail}
                   alt={image.alt}
-                  loading={index < 3 ? "eager" : "lazy"}
+                  loading="lazy"
                   fetchPriority={index === 0 ? "high" : "auto"}
                   decoding="async"
                 />
@@ -741,7 +787,7 @@ function CategoryGallery() {
                 onClick={() => setActiveItem({ type: "video", src: video.src, title: video.title })}
                 aria-label={`Play ${video.title}`}
               >
-                {video.thumbnail ? <img src={video.thumbnail} alt="" loading="lazy" /> : <div className="video-placeholder" />}
+                {video.thumbnail ? <LoadingImage src={video.thumbnail} alt="" loading="lazy" decoding="async" /> : <div className="video-placeholder" />}
                 <span className="video-play"><Play size={22} fill="currentColor" /></span>
               </motion.button>
             ))}
@@ -758,6 +804,7 @@ function CategoryGallery() {
       <Footer />
       <Lightbox
         item={activeItem}
+        images={category.galleryImages}
         onClose={() => setActiveItem(null)}
         onPrevious={showPreviousImage}
         onNext={showNextImage}

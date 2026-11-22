@@ -11,6 +11,7 @@ const portfolioDirectories = [
   {
     key: "images",
     root: join(publicRoot, "images", "portfolio"),
+    thumbnailRoot: join(publicRoot, "images", "portfolio-thumbnails"),
     extensions: new Set([".avif", ".gif", ".jpeg", ".jpg", ".png", ".webp"]),
   },
   {
@@ -29,7 +30,7 @@ function listCategoryFolders(root) {
     .map((entry) => entry.name);
 }
 
-function listPortfolioFiles(directory, category, extensions) {
+function listPortfolioFiles(directory, category, extensions, thumbnailRoot) {
   const categoryDirectory = join(directory, category);
   if (!existsSync(categoryDirectory)) return [];
 
@@ -37,7 +38,18 @@ function listPortfolioFiles(directory, category, extensions) {
     .filter((entry) => entry.isFile() && extensions.has(entry.name.slice(entry.name.lastIndexOf(".")).toLowerCase()))
     .map((entry) => entry.name)
     .sort((left, right) => left.localeCompare(right))
-    .map((fileName) => `${siteBase}${directory.slice(publicRoot.length + 1).split(sep).join("/")}/${category}/${encodeURIComponent(fileName)}`);
+    .map((fileName) => {
+      const source = `${siteBase}${directory.slice(publicRoot.length + 1).split(sep).join("/")}/${category}/${encodeURIComponent(fileName)}`;
+      if (!thumbnailRoot) return source;
+
+      const thumbnailFileName = `${fileName.slice(0, fileName.lastIndexOf("."))}.webp`;
+      const thumbnailPath = join(thumbnailRoot, category, thumbnailFileName);
+      const thumbnail = existsSync(thumbnailPath)
+        ? `${siteBase}${thumbnailRoot.slice(publicRoot.length + 1).split(sep).join("/")}/${category}/${encodeURIComponent(thumbnailFileName)}`
+        : source;
+
+      return { src: source, thumbnail };
+    });
 }
 
 function getPortfolioMedia() {
@@ -47,9 +59,9 @@ function getPortfolioMedia() {
     [...categories].map((category) => [
       category,
       Object.fromEntries(
-        portfolioDirectories.map(({ key, root, extensions }) => [
+        portfolioDirectories.map(({ key, root, extensions, thumbnailRoot }) => [
           key,
-          listPortfolioFiles(root, category, extensions),
+          listPortfolioFiles(root, category, extensions, thumbnailRoot),
         ]),
       ),
     ]),
@@ -68,7 +80,7 @@ function portfolioMediaPlugin() {
       }
     },
     configureServer(server) {
-      const watchedRoots = portfolioDirectories.map(({ root }) => root);
+      const watchedRoots = portfolioDirectories.flatMap(({ root, thumbnailRoot }) => [root, thumbnailRoot].filter(Boolean));
       server.watcher.add(watchedRoots);
 
       const reloadPortfolio = (file) => {
